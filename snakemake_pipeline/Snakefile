@@ -1,0 +1,255 @@
+#from snakemake_pipeline.pam_identification import run_pam_predict
+
+localrules: unzip
+# import packages
+import os.path
+import pathlib
+
+# import configs
+input_directory = pathlib.Path(config['input_directory'])
+output_directory = pathlib.Path(config['output_directory'])
+pam_predict_installation_directory = pathlib.Path(config['pam_predict_installation_directory'])
+hmm_files_path = pathlib.Path(config['hmm_files_path'])
+sample_file = pathlib.Path(config['sample_file'])
+phage_database = pathlib.Path(config['phage_database'])
+cas_type = config['cas_type']
+num_processes = config['num_processes']
+run_minced = config['run_minced']
+run_pilercr = config['run_pilercr']
+run_merge = config['run_merge']
+run_clustering = config['run_clustering']
+run_pam_predict = config['run_pam_predict']
+
+# set output folder names
+unzipped_folder = "unzipped"
+run_minced_folder = "minced"
+run_pilercr_folder = "pilercr"
+merged_folder = "merged"
+cluster_folder = "clustering"
+pam_predict_directory = "pam_prediction"
+
+script_folder = workflow.basedir + "/scripts/"
+
+# set all file and rule names
+samples = []
+if sample_file.is_file():
+        samples = set(sample_file.read_text().splitlines())
+if not sample_file.is_file():
+        print("Please provide a sample file. This error may be caused by running the snakemake command in the wrong directory.")
+        exit(1)
+if len(samples) == 0:
+        print("No samples were found.")
+        exit(1)
+
+# define target files for snakemake
+unzipped_fastas = []
+minced_output = []
+pilercr_output = []
+merged_output = []
+tsv_input = []
+protein_fastas = []
+flanking_size_records = []
+merged_crispr_array_record = []
+merged_fastas = []
+pam_predict_output = []
+for sample in samples:
+        unzipped_fastas.append(os.path.join(output_directory, unzipped_folder, sample.split('.gz')[0]))
+        minced_output.append(os.path.join(output_directory, run_minced_folder, sample.split('.gz')[0] + '.txt'))
+        minced_output.append(os.path.join(output_directory, run_minced_folder, sample.split('.gz')[0] + '.minced.done'))
+        pilercr_output.append(os.path.join(output_directory, run_pilercr_folder, sample.split('.gz')[0] + '.txt'))
+        pilercr_output.append(os.path.join(output_directory, run_pilercr_folder, sample.split('.gz')[0] + '.pilercr.done'))
+        merged_output.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.txt'))
+        merged_output.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.merged.done'))
+        tsv_input.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.tsv'))
+        protein_fastas.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.faa'))
+        flanking_size_records.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '_flanking_size.tsv'))
+        merged_crispr_array_record.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.txt'))
+        merged_fastas.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.fasta'))
+        merged_fastas.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.fasta'))
+        pam_predict_output.append(os.path.join(output_directory, pam_predict_directory, sample.split('.gz')[0] + '.done'))
+
+cluster_output = os.path.join(output_directory, cluster_folder, 'cluster_cas.done')
+
+# if a rule should not be run, empty the target files for the rule
+if not run_minced:
+        minced_output = []
+if not run_pilercr:
+        pilercr_output = []
+if not run_merge:
+        merged_output = []
+if not run_clustering:
+        cluster_output = []
+if not run_pam_predict:
+        pam_predict_output = []
+
+# define rule with all target files
+rule all:
+        input:
+                minced_output,
+                pilercr_output,
+                merged_output,
+                cluster_output,
+                pam_predict_output
+
+rule unzip:
+        """
+        Unzip .gz files, unzipped files will be removed by snakemake after no longer being needed.
+        """
+        input:
+                zipped_fasta = os.path.join(input_directory, '{sample}.gz')
+        output:
+                unzipped_fasta = temp(os.path.join(output_directory, unzipped_folder, '{sample}')), # temp: delete after all rules that use it as an input are completed
+                unzip_done = touch(os.path.join(output_directory, unzipped_folder, '{sample}.done'))
+        log:
+                command = os.path.join(output_directory, unzipped_folder, '{sample}.unzip.command'),
+                log_errors = os.path.join(output_directory, unzipped_folder, '{sample}.unzip.errors.log')
+        shell:
+                '''
+                command="gunzip -c {input.zipped_fasta} > {output.unzipped_fasta} 2> {log.log_errors}"
+                echo "$command" > {log.command};
+                eval "$command"
+                '''
+
+rule minced:
+        """
+        Run minced on the unzipped files.
+        """
+        input:
+                unzipped_fasta = os.path.join(output_directory, unzipped_folder, '{sample}'),
+                unzip_done = os.path.join(output_directory, unzipped_folder, '{sample}.done')
+        output:
+                output_file = os.path.join(output_directory, run_minced_folder, '{sample}.txt'),
+                done_file = touch(os.path.join(output_directory, run_minced_folder, '{sample}.minced.done'))
+        params:
+                job_name = 'snakemake_minced'
+        resources:
+                runtime = 60,
+                mem_mb_per_cpu = 20000
+        threads:
+                1
+        log:
+                command = os.path.join(output_directory, run_minced_folder, '{sample}.minced.command'),
+                log = os.path.join(output_directory, run_minced_folder, '{sample}.minced.log')
+        shell:
+                '''
+                command="minced -minRL 18 {input.unzipped_fasta} {output.output_file} &>> {log.log}"
+                echo "$command" > {log.command};
+                eval "$command"
+                '''
+
+rule pilercr:
+        """
+        Run pilercr on the unzipped files.
+        """
+        input:
+                unzipped_fasta = os.path.join(output_directory, unzipped_folder, '{sample}'),
+                unzip_done = os.path.join(output_directory, unzipped_folder, '{sample}.done')
+        output:
+                output_file = os.path.join(output_directory, run_pilercr_folder, '{sample}.txt'),
+                done_file = touch(os.path.join(output_directory, run_pilercr_folder, '{sample}.pilercr.done'))
+        params:
+                job_name = 'snakemake_pilercr'
+        resources:
+                runtime = 60,
+                mem_mb_per_cpu = 20000
+        threads:
+                1
+        log:
+                command = os.path.join(output_directory, run_pilercr_folder, '{sample}.pilercr.command'),
+                log = os.path.join(output_directory, run_pilercr_folder, '{sample}.pilercr.log')
+        shell:
+                '''
+                command="pilercr -mincons 0.75 -in {input.unzipped_fasta} -out {output.output_file} -noinfo -quiet &>> {log.log}"
+                echo "$command" > {log.command};
+                eval "$command"
+                '''
+
+rule crispr_containing_contigs:
+        """
+        Extract contigs from pilercr and minced results and merge, find Cas enzymes.
+        """
+        input:
+                minced_file = os.path.join(output_directory, run_minced_folder, '{sample}.txt'),
+                pilercr_file = os.path.join(output_directory, run_pilercr_folder, '{sample}.txt'),
+                unzipped_fasta = os.path.join(output_directory, unzipped_folder, '{sample}')
+        output:
+                merged_file = os.path.join(output_directory, merged_folder, '{sample}.txt'),
+                done_file = touch(os.path.join(output_directory, merged_folder, '{sample}.merged.done')),
+                protein_fasta = os.path.join(output_directory, merged_folder, '{sample}.faa'),
+                merged_fasta = os.path.join(output_directory, merged_folder, '{sample}.fasta')
+        params:
+                output_folder = os.path.join(output_directory, merged_folder),
+                sample = '{sample}',
+                hmm_files_path = hmm_files_path,
+                cas_flanking_region = os.path.join(output_directory, merged_folder, '{sample}.tsv'),
+                flanking_size_filename = os.path.join(output_directory, merged_folder, '{sample}_flanking_size.tsv'),
+                script_folder = script_folder
+        log:
+                command = os.path.join(output_directory, merged_folder, '{sample}.merge.command'),
+                log = os.path.join(output_directory, merged_folder, '{sample}.merge.log')
+        shell:
+                '''
+                command="python {params.script_folder}crispr_containing_contigs.py --minced_file {input.minced_file} --pilercr_file {input.pilercr_file} --merged_file {output.merged_file} --merged_fasta {output.merged_fasta} --unzipped_fasta {input.unzipped_fasta} --protein_fasta {output.protein_fasta} --hmm_files_path {params.hmm_files_path} --output_folder {params.output_folder} --sample {params.sample} --cas_flanking_region {params.cas_flanking_region} --flanking_size_filename {params.flanking_size_filename} &>> {log.log}"
+                echo "$command" > {log.command};
+                eval "$command"
+                '''
+
+rule cluster_cas:
+        """
+        Collect all Cas proteins into a single file and cluster them to form identical Cas protein clusters.
+        If not already present, create BLASTn database for the phage data.
+        """
+        input:
+                merged_crispr_array_records = expand("{merged_crispr_array_record}", merged_crispr_array_record = merged_output),
+                protein_fastas = expand("{protein_fasta}", protein_fasta = protein_fastas),
+                pilercr_output_files = expand("{pilercr_output_files}", pilercr_output_files = pilercr_output),
+                minced_output_files = expand("{minced_file}", minced_file = minced_output),
+                merged_fastas = expand("{merged_fastas}", merged_fastas = merged_fastas)
+        output:
+                all_cas9 = os.path.join(output_directory, f'{cas_type}/all_{cas_type}_proteins/all_{cas_type}.fasta'),
+                first_clustering_result = expand(os.path.join(output_directory, f"{cas_type}/all_{cas_type}_proteins/mmseqs2_clustering/{cas_type}/{cas_type}_cluster_split/{cas_type}_clustering_results_part{{index}}.tsv"),index=range(num_processes)),
+                done_file = touch(os.path.join(output_directory, cluster_folder, 'cluster_cas.done'))
+        params:
+                flanking_size_records = expand("{flanking_size_record}", flanking_size_record = flanking_size_records),
+                phage_database = phage_database,
+                cas_type = cas_type,
+                cas_flanking_regions = tsv_input, # proper format
+                num_processes = num_processes,
+                output_directory = output_directory,
+                script_folder = script_folder
+        log:
+                command = os.path.join(output_directory, cluster_folder, 'cluster.command'),
+                log = os.path.join(output_directory, cluster_folder, 'cluster.log')
+        shell:
+                '''
+                command="python {params.script_folder}cas_clustering.py --num_processes {params.num_processes} --merged_fastas {input.merged_fastas} --pilercr_output_files {input.pilercr_output_files} --minced_output_files {input.minced_output_files} --cas_type {params.cas_type} --phage_database {params.phage_database} --cas_flanking_regions {params.cas_flanking_regions} --flanking_size_records {params.flanking_size_records} --protein_fastas {input.protein_fastas} --merged_crispr_array_records {input.merged_crispr_array_records} --output_directory {params.output_directory} &>> {log.log}"
+                echo "$command" > {log.command};
+                eval "$command"
+                '''
+
+rule pam_identification:
+        """
+        Uses PAMpredict to map spacers from the same Cas9 cluster, aiming to identify PAM sequences within the phage database        
+        """
+        input:
+                merged_fasta = os.path.join(output_directory, merged_folder, '{sample}.fasta'),
+                done_file = os.path.join(output_directory, cluster_folder, 'cluster_cas.done')
+        output:
+                done_file = touch(os.path.join(output_directory, pam_predict_directory, '{sample}.done'))
+        params:
+                num_processes = num_processes,
+                phage_database = phage_database,
+                cas_type = cas_type,
+                output_directory = output_directory,
+                pam_predict_installation_directory = pam_predict_installation_directory,
+                pam_prediction_output_directory = os.path.dirname(os.path.join(output_directory, pam_predict_directory, '{sample}')),
+                script_folder = script_folder
+        log:
+                command = os.path.join(output_directory, pam_predict_directory, '{sample}.pam_predict.command'),
+                log = os.path.join(output_directory, pam_predict_directory, '{sample}.pam_predict.log')
+        shell:
+                '''
+                command="python {params.script_folder}pam_identification.py --merged_fasta {input.merged_fasta} --pam_prediction_output_directory {params.pam_prediction_output_directory} --pam_predict_installation_directory {params.pam_predict_installation_directory} --cas_type {params.cas_type} --phage_database {params.phage_database}  --output_directory {params.output_directory} &>> {log.log}"
+                echo "$command" > {log.command};
+                eval "$command"
+                '''
