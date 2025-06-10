@@ -13,7 +13,7 @@ proteins are then checked if they are in flanking regions of the CRISPR repeats.
 
 ### Cluster Cas Proteins
 To enhance the number of spacers associated with each Cas ortholog, we pooled CRISPR arrays from
-closely related Cas proteins. Proteins are clustered using MMseqs2 at 100%, 99%, and 98% amino acid identity.
+closely related Cas proteins. Proteins are clustered using MMseqs2 at 98% amino acid identity.
 
 ### Identify PAM and Protospacers
 We then identify PAM sequences and protospacers based on the identified CRISPR-Cas regions.
