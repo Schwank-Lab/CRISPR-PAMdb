@@ -21,7 +21,6 @@ def return_seq_from_crispr_contig(merged_fasta, crispr_contig_id, start_pos, end
     Retrieves a protein sequence from a specified region of a contig in a CRISPR array dataset.
     """
     try:
-        test = SeqIO.to_dict(SeqIO.parse(merged_fasta, "fasta"))
         crispr_contig_seq_current = SeqIO.to_dict(SeqIO.parse(merged_fasta, "fasta"))[crispr_contig_id]
         return_seq = crispr_contig_seq_current[start_pos - 1:end_pos].seq
         if strand == -1:

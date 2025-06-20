@@ -13,20 +13,22 @@ hmm_files_path = pathlib.Path(config['hmm_files_path'])
 sample_file = pathlib.Path(config['sample_file'])
 phage_database = pathlib.Path(config['phage_database'])
 cas_type = config['cas_type']
-num_processes = config['num_processes']
+num_processes = int(config['num_processes'])
 run_minced = config['run_minced']
 run_pilercr = config['run_pilercr']
 run_merge = config['run_merge']
 run_clustering = config['run_clustering']
 run_pam_predict = config['run_pam_predict']
+run_prepare_spacers = config['run_prepare_spacers']
 
 # set output folder names
-unzipped_folder = "unzipped"
-run_minced_folder = "minced"
-run_pilercr_folder = "pilercr"
-merged_folder = "merged"
-cluster_folder = "clustering"
+unzipped_directory = "unzipped"
+run_minced_directory = "minced"
+run_pilercr_directory = "pilercr"
+merged_directory = "merged"
+cluster_directory = "clustering"
 pam_predict_directory = "pam_prediction"
+prepare_spacers_directory = "prepare_spacers"
 
 script_folder = workflow.basedir + "/scripts/"
 
@@ -51,24 +53,23 @@ protein_fastas = []
 flanking_size_records = []
 merged_crispr_array_record = []
 merged_fastas = []
-pam_predict_output = []
 for sample in samples:
-        unzipped_fastas.append(os.path.join(output_directory, unzipped_folder, sample.split('.gz')[0]))
-        minced_output.append(os.path.join(output_directory, run_minced_folder, sample.split('.gz')[0] + '.txt'))
-        minced_output.append(os.path.join(output_directory, run_minced_folder, sample.split('.gz')[0] + '.minced.done'))
-        pilercr_output.append(os.path.join(output_directory, run_pilercr_folder, sample.split('.gz')[0] + '.txt'))
-        pilercr_output.append(os.path.join(output_directory, run_pilercr_folder, sample.split('.gz')[0] + '.pilercr.done'))
-        merged_output.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.txt'))
-        merged_output.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.merged.done'))
-        tsv_input.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.tsv'))
-        protein_fastas.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.faa'))
-        flanking_size_records.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '_flanking_size.tsv'))
-        merged_crispr_array_record.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.txt'))
-        merged_fastas.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.fasta'))
-        merged_fastas.append(os.path.join(output_directory, merged_folder, sample.split('.gz')[0] + '.fasta'))
-        pam_predict_output.append(os.path.join(output_directory, pam_predict_directory, sample.split('.gz')[0] + '.done'))
-
-cluster_output = os.path.join(output_directory, cluster_folder, 'cluster_cas.done')
+        unzipped_fastas.append(os.path.join(output_directory, unzipped_directory, sample.split('.gz')[0]))
+        minced_output.append(os.path.join(output_directory, run_minced_directory,sample.split('.gz')[0] + '.txt'))
+        minced_output.append(os.path.join(output_directory, run_minced_directory,sample.split('.gz')[0] + '.minced.done'))
+        pilercr_output.append(os.path.join(output_directory, run_pilercr_directory,sample.split('.gz')[0] + '.txt'))
+        pilercr_output.append(os.path.join(output_directory, run_pilercr_directory,sample.split('.gz')[0] + '.pilercr.done'))
+        merged_output.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '.txt'))
+        merged_output.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '.merged.done'))
+        tsv_input.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '.tsv'))
+        protein_fastas.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '.faa'))
+        flanking_size_records.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '_flanking_size.tsv'))
+        merged_crispr_array_record.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '.txt'))
+        merged_fastas.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '.fasta'))
+        merged_fastas.append(os.path.join(output_directory, merged_directory,sample.split('.gz')[0] + '.fasta'))
+prepare_spacers_output = expand(os.path.join(output_directory,prepare_spacers_directory,f'prepare_spacers_{{index}}.done'),index=range(num_processes))
+cluster_output = os.path.join(output_directory, cluster_directory,'cluster_cas.done')
+pam_predict_output = os.path.join(output_directory, pam_predict_directory, f'pam_predict.done')
 
 # if a rule should not be run, empty the target files for the rule
 if not run_minced:
@@ -79,6 +80,8 @@ if not run_merge:
         merged_output = []
 if not run_clustering:
         cluster_output = []
+if not run_prepare_spacers:
+        prepare_spacers_output = []
 if not run_pam_predict:
         pam_predict_output = []
 
@@ -89,6 +92,7 @@ rule all:
                 pilercr_output,
                 merged_output,
                 cluster_output,
+                prepare_spacers_output,
                 pam_predict_output
 
 rule unzip:
@@ -98,11 +102,11 @@ rule unzip:
         input:
                 zipped_fasta = os.path.join(input_directory, '{sample}.gz')
         output:
-                unzipped_fasta = temp(os.path.join(output_directory, unzipped_folder, '{sample}')), # temp: delete after all rules that use it as an input are completed
-                unzip_done = touch(os.path.join(output_directory, unzipped_folder, '{sample}.done'))
+                unzipped_fasta = temp(os.path.join(output_directory, unzipped_directory,'{sample}')), # temp: delete after all rules that use it as an input are completed
+                unzip_done = touch(os.path.join(output_directory, unzipped_directory,'{sample}.done'))
         log:
-                command = os.path.join(output_directory, unzipped_folder, '{sample}.unzip.command'),
-                log_errors = os.path.join(output_directory, unzipped_folder, '{sample}.unzip.errors.log')
+                command = os.path.join(output_directory, unzipped_directory,'{sample}.unzip.command'),
+                log_errors = os.path.join(output_directory, unzipped_directory,'{sample}.unzip.errors.log')
         shell:
                 '''
                 command="gunzip -c {input.zipped_fasta} > {output.unzipped_fasta} 2> {log.log_errors}"
@@ -115,11 +119,11 @@ rule minced:
         Run minced on the unzipped files.
         """
         input:
-                unzipped_fasta = os.path.join(output_directory, unzipped_folder, '{sample}'),
-                unzip_done = os.path.join(output_directory, unzipped_folder, '{sample}.done')
+                unzipped_fasta = os.path.join(output_directory, unzipped_directory,'{sample}'),
+                unzip_done = os.path.join(output_directory, unzipped_directory,'{sample}.done')
         output:
-                output_file = os.path.join(output_directory, run_minced_folder, '{sample}.txt'),
-                done_file = touch(os.path.join(output_directory, run_minced_folder, '{sample}.minced.done'))
+                output_file = os.path.join(output_directory, run_minced_directory,'{sample}.txt'),
+                done_file = touch(os.path.join(output_directory, run_minced_directory,'{sample}.minced.done'))
         params:
                 job_name = 'snakemake_minced'
         resources:
@@ -128,8 +132,8 @@ rule minced:
         threads:
                 1
         log:
-                command = os.path.join(output_directory, run_minced_folder, '{sample}.minced.command'),
-                log = os.path.join(output_directory, run_minced_folder, '{sample}.minced.log')
+                command = os.path.join(output_directory, run_minced_directory,'{sample}.minced.command'),
+                log = os.path.join(output_directory, run_minced_directory,'{sample}.minced.log')
         shell:
                 '''
                 command="minced -minRL 18 {input.unzipped_fasta} {output.output_file} &>> {log.log}"
@@ -142,11 +146,11 @@ rule pilercr:
         Run pilercr on the unzipped files.
         """
         input:
-                unzipped_fasta = os.path.join(output_directory, unzipped_folder, '{sample}'),
-                unzip_done = os.path.join(output_directory, unzipped_folder, '{sample}.done')
+                unzipped_fasta = os.path.join(output_directory, unzipped_directory,'{sample}'),
+                unzip_done = os.path.join(output_directory, unzipped_directory,'{sample}.done')
         output:
-                output_file = os.path.join(output_directory, run_pilercr_folder, '{sample}.txt'),
-                done_file = touch(os.path.join(output_directory, run_pilercr_folder, '{sample}.pilercr.done'))
+                output_file = os.path.join(output_directory, run_pilercr_directory,'{sample}.txt'),
+                done_file = touch(os.path.join(output_directory, run_pilercr_directory,'{sample}.pilercr.done'))
         params:
                 job_name = 'snakemake_pilercr'
         resources:
@@ -155,8 +159,8 @@ rule pilercr:
         threads:
                 1
         log:
-                command = os.path.join(output_directory, run_pilercr_folder, '{sample}.pilercr.command'),
-                log = os.path.join(output_directory, run_pilercr_folder, '{sample}.pilercr.log')
+                command = os.path.join(output_directory, run_pilercr_directory,'{sample}.pilercr.command'),
+                log = os.path.join(output_directory, run_pilercr_directory,'{sample}.pilercr.log')
         shell:
                 '''
                 command="pilercr -mincons 0.75 -in {input.unzipped_fasta} -out {output.output_file} -noinfo -quiet &>> {log.log}"
@@ -169,24 +173,24 @@ rule crispr_containing_contigs:
         Extract contigs from pilercr and minced results and merge, find Cas enzymes.
         """
         input:
-                minced_file = os.path.join(output_directory, run_minced_folder, '{sample}.txt'),
-                pilercr_file = os.path.join(output_directory, run_pilercr_folder, '{sample}.txt'),
-                unzipped_fasta = os.path.join(output_directory, unzipped_folder, '{sample}')
+                minced_file = os.path.join(output_directory, run_minced_directory,'{sample}.txt'),
+                pilercr_file = os.path.join(output_directory, run_pilercr_directory,'{sample}.txt'),
+                unzipped_fasta = os.path.join(output_directory, unzipped_directory,'{sample}')
         output:
-                merged_file = os.path.join(output_directory, merged_folder, '{sample}.txt'),
-                done_file = touch(os.path.join(output_directory, merged_folder, '{sample}.merged.done')),
-                protein_fasta = os.path.join(output_directory, merged_folder, '{sample}.faa'),
-                merged_fasta = os.path.join(output_directory, merged_folder, '{sample}.fasta')
+                merged_file = os.path.join(output_directory, merged_directory,'{sample}.txt'),
+                done_file = touch(os.path.join(output_directory, merged_directory,'{sample}.merged.done')),
+                protein_fasta = os.path.join(output_directory, merged_directory,'{sample}.faa'),
+                merged_fasta = os.path.join(output_directory, merged_directory,'{sample}.fasta')
         params:
-                output_folder = os.path.join(output_directory, merged_folder),
+                output_folder = os.path.join(output_directory, merged_directory,'{sample}'),
                 sample = '{sample}',
                 hmm_files_path = hmm_files_path,
-                cas_flanking_region = os.path.join(output_directory, merged_folder, '{sample}.tsv'),
-                flanking_size_filename = os.path.join(output_directory, merged_folder, '{sample}_flanking_size.tsv'),
+                cas_flanking_region = os.path.join(output_directory, merged_directory,'{sample}.tsv'),
+                flanking_size_filename = os.path.join(output_directory, merged_directory,'{sample}_flanking_size.tsv'),
                 script_folder = script_folder
         log:
-                command = os.path.join(output_directory, merged_folder, '{sample}.merge.command'),
-                log = os.path.join(output_directory, merged_folder, '{sample}.merge.log')
+                command = os.path.join(output_directory, merged_directory,'{sample}.merge.command'),
+                log = os.path.join(output_directory, merged_directory,'{sample}.merge.log')
         shell:
                 '''
                 command="python {params.script_folder}crispr_containing_contigs.py --minced_file {input.minced_file} --pilercr_file {input.pilercr_file} --merged_file {output.merged_file} --merged_fasta {output.merged_fasta} --unzipped_fasta {input.unzipped_fasta} --protein_fasta {output.protein_fasta} --hmm_files_path {params.hmm_files_path} --output_folder {params.output_folder} --sample {params.sample} --cas_flanking_region {params.cas_flanking_region} --flanking_size_filename {params.flanking_size_filename} &>> {log.log}"
@@ -208,7 +212,7 @@ rule cluster_cas:
         output:
                 all_cas9 = os.path.join(output_directory, f'{cas_type}/all_{cas_type}_proteins/all_{cas_type}.fasta'),
                 first_clustering_result = expand(os.path.join(output_directory, f"{cas_type}/all_{cas_type}_proteins/mmseqs2_clustering/{cas_type}/{cas_type}_cluster_split/{cas_type}_clustering_results_part{{index}}.tsv"),index=range(num_processes)),
-                done_file = touch(os.path.join(output_directory, cluster_folder, 'cluster_cas.done'))
+                done_file = touch(os.path.join(output_directory, cluster_directory,'cluster_cas.done'))
         params:
                 flanking_size_records = expand("{flanking_size_record}", flanking_size_record = flanking_size_records),
                 phage_database = phage_database,
@@ -218,8 +222,8 @@ rule cluster_cas:
                 output_directory = output_directory,
                 script_folder = script_folder
         log:
-                command = os.path.join(output_directory, cluster_folder, 'cluster.command'),
-                log = os.path.join(output_directory, cluster_folder, 'cluster.log')
+                command = os.path.join(output_directory, cluster_directory,'cluster.command'),
+                log = os.path.join(output_directory, cluster_directory,'cluster.log')
         shell:
                 '''
                 command="python {params.script_folder}cas_clustering.py --num_processes {params.num_processes} --merged_fastas {input.merged_fastas} --pilercr_output_files {input.pilercr_output_files} --minced_output_files {input.minced_output_files} --cas_type {params.cas_type} --phage_database {params.phage_database} --cas_flanking_regions {params.cas_flanking_regions} --flanking_size_records {params.flanking_size_records} --protein_fastas {input.protein_fastas} --merged_crispr_array_records {input.merged_crispr_array_records} --output_directory {params.output_directory} &>> {log.log}"
@@ -227,29 +231,63 @@ rule cluster_cas:
                 eval "$command"
                 '''
 
-rule pam_identification:
+rule prepare_spacers:
         """
-        Uses PAMpredict to map spacers from the same Cas9 cluster, aiming to identify PAM sequences within the phage database        
+        Prepare spacers for PAMpredict by merging all spacers from the same Cas9 cluster into a single file.
         """
         input:
-                merged_fasta = os.path.join(output_directory, merged_folder, '{sample}.fasta'),
-                done_file = os.path.join(output_directory, cluster_folder, 'cluster_cas.done')
+                clustering_result = os.path.join(output_directory,
+                    f"{cas_type}/all_{cas_type}_proteins/mmseqs2_clustering/{cas_type}/{cas_type}_cluster_split/{cas_type}_clustering_results_part{{index}}.tsv"
+                ),
+                clustering_done_file = os.path.join(output_directory, cluster_directory, "cluster_cas.done")
         output:
-                done_file = touch(os.path.join(output_directory, pam_predict_directory, '{sample}.done'))
+                repeat_clustering_representative_ratio = os.path.join(output_directory,
+                    f"{cas_type}/all_{cas_type}_proteins/mmseqs2_clustering/{cas_type}/{cas_type}_cluster_split/cdhit_repeat_clustering_representative_ratio_part{{index}}.csv"
+                ),
+                done_file = touch(os.path.join(output_directory,prepare_spacers_directory,"prepare_spacers_{index}.done"))
+        wildcard_constraints:
+                index = r"\d+"
         params:
+                index=lambda wildcards: wildcards.index,
+                output_directory = output_directory,
+                prepare_spacers_directory = os.path.join(output_directory,prepare_spacers_directory),
+                cas_type = cas_type,
+                script_folder= script_folder
+        log:
+                command = os.path.join(output_directory,prepare_spacers_directory,f"prepare_spacers_{{index}}.command"),
+                log = os.path.join(output_directory,prepare_spacers_directory,f"prepare_spacers_{{index}}.log")
+        shell:
+                '''
+                command="python {params.script_folder}prepare_spacers.py --prepare_spacers_directory {params.prepare_spacers_directory} --repeat_clustering_representative_ratio {output.repeat_clustering_representative_ratio} --output_directory {params.output_directory} --cas_type {params.cas_type} --sublist {input.clustering_result} &>> {log.log}"
+                echo "$command" > {log.command};
+                eval "$command"
+                '''
+
+
+rule pam_identification:
+        """
+        Uses PAMpredict to map spacers from the same Cas9 cluster, aiming to identify PAM sequences within the phage database.
+        Wildcards were not possible due to very dynamic naming of files.        
+        """
+        input:
+                done_file = expand(os.path.join(output_directory, prepare_spacers_directory, f"prepare_spacers_{{index}}.done"), index=range(num_processes))
+        output:
+                done_file = touch(os.path.join(output_directory, pam_predict_directory, f'pam_predict.done'))
+        params:
+                fasta = expand(os.path.join(output_directory,"cas9/all_cas9_proteins/mmseqs2_clustering/cdhit_repeat_oriented_spacer_clustering")),
                 num_processes = num_processes,
                 phage_database = phage_database,
                 cas_type = cas_type,
                 output_directory = output_directory,
                 pam_predict_installation_directory = pam_predict_installation_directory,
-                pam_prediction_output_directory = os.path.dirname(os.path.join(output_directory, pam_predict_directory, '{sample}')),
+                pam_prediction_output_directory = os.path.join(output_directory, pam_predict_directory),
                 script_folder = script_folder
         log:
-                command = os.path.join(output_directory, pam_predict_directory, '{sample}.pam_predict.command'),
-                log = os.path.join(output_directory, pam_predict_directory, '{sample}.pam_predict.log')
+                command = os.path.join(output_directory, pam_predict_directory, 'pam_predict.command'),
+                log = os.path.join(output_directory, pam_predict_directory, 'pam_predict.log')
         shell:
                 '''
-                command="python {params.script_folder}pam_identification.py --merged_fasta {input.merged_fasta} --pam_prediction_output_directory {params.pam_prediction_output_directory} --pam_predict_installation_directory {params.pam_predict_installation_directory} --cas_type {params.cas_type} --phage_database {params.phage_database}  --output_directory {params.output_directory} &>> {log.log}"
+                command="python {params.script_folder}pam_identification.py --fasta {params.fasta} --pam_prediction_output_directory {params.pam_prediction_output_directory} --pam_predict_installation_directory {params.pam_predict_installation_directory} --cas_type {params.cas_type} --phage_database {params.phage_database}  --output_directory {params.output_directory} &>> {log.log}"
                 echo "$command" > {log.command};
                 eval "$command"
                 '''
