@@ -1,14 +1,14 @@
 ##############
 # PARAMETERS #
 ##############
-input_directory: '/mnt/motus_db/genomes'
-output_directory: '/home/ubuntu/lilith/mining_crispr_pipeline_results'
-pam_predict_installation_directory: '/home/ubuntu/lilith/PAMpredict/PAMpredict'
-hmm_files_path: '/mnt/Profiles'
-sample_file: '/home/ubuntu/lilith/Mining_CRISPR/snakemake_pipeline/config/samples'
-phage_database: '/mnt/Valentyn_deduplicate_plusPR/combined.fna'
-cas_type: 'cas9'
-num_processes: 2
+input_directory: '/path/to/fastas' # path to the database of gzipped fasta files
+output_directory: '/path/to/results' # where your results should be
+pam_predict_installation_directory: '/path/to/PAMpredict/PAMpredict' # absolute path to PAMpredict installation directory
+hmm_files_path: '/path/to/hmm/profiles' # path to hmm profiles
+sample_file: '/path/to/CRISPR-PAMdb/snakemake_pipeline/samples' # path to samples file
+phage_database: '/path/to/phages.fna' # path to the fasta file of your phage database
+cas_type: 'cas9' # cas type you are interested in
+num_processes: '2' # to speed up PAMpredict, may lead to errors if number is chosen too high
 
 ################
 # RULES TO RUN #
@@ -19,4 +19,4 @@ run_pilercr: True
 run_merge: True
 run_clustering: True
 run_prepare_spacers: True
-run_pam_predict: False
+run_pam_predict: True
