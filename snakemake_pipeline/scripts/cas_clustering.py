@@ -88,18 +88,19 @@ def collect_all_cas_in_one_file(crispr_operon_all_pos_in_crispr_contig_files, al
     os.remove(file_name) if os.path.exists(file_name) else None  # delete file if exists so avoid repeatedly appending seqs later
 
     for i in range(len(crispr_operon_all_pos_in_crispr_contig_files)):
-        try:
-            crispr_operon_all_pos_in_crispr_contig_result = pd.read_csv(crispr_operon_all_pos_in_crispr_contig_files[i], header = 0, index_col = None, sep ="\t")
-            crispr_core_operon_pos = crispr_operon_all_pos_in_crispr_contig_result[~(
-                        (crispr_operon_all_pos_in_crispr_contig_result["hmm_id"] == "0") & (
-                            crispr_operon_all_pos_in_crispr_contig_result["protein_id"] != "repeat") & (
-                                    crispr_operon_all_pos_in_crispr_contig_result["protein_id"] != "spacer"))]
-            cas_seq = get_cas_seq_from_crispr_core_operon_pos(crispr_operon_all_pos_in_crispr_contig_files[i], crispr_core_operon_pos, cas_type, merged_fastas[i])  # further get cas_type cas proteins only,here should we actually use DNA seq of cas protein, not protein seq ?
-            append_to_fasta(cas_seq, file_name)
+        if os.path.exists(crispr_operon_all_pos_in_crispr_contig_files[i] + "2"):
+            try:
+                crispr_operon_all_pos_in_crispr_contig_result = pd.read_csv(crispr_operon_all_pos_in_crispr_contig_files[i] + "2", header = 0, index_col = None, sep ="\t")
+                crispr_core_operon_pos = crispr_operon_all_pos_in_crispr_contig_result[~(
+                            (crispr_operon_all_pos_in_crispr_contig_result["hmm_id"] == "0") & (
+                                crispr_operon_all_pos_in_crispr_contig_result["protein_id"] != "repeat") & (
+                                        crispr_operon_all_pos_in_crispr_contig_result["protein_id"] != "spacer"))]
+                cas_seq = get_cas_seq_from_crispr_core_operon_pos(crispr_operon_all_pos_in_crispr_contig_files[i] + "2", crispr_core_operon_pos, cas_type, merged_fastas[i])  # further get cas_type cas proteins only,here should we actually use DNA seq of cas protein, not protein seq ?
+                append_to_fasta(cas_seq, file_name)
 
-        except IndexError as e:
-            print(f"There were no {cas_type} hits for {crispr_operon_all_pos_in_crispr_contig_files[i]}.")
-            continue
+            except IndexError as e:
+                print(f"There were no {cas_type} hits for {crispr_operon_all_pos_in_crispr_contig_files[i]}2.")
+                continue
 
 
 def mmseqs_easy_clustering(all_cas_proteins_folder, cas_type, threads_num):
@@ -571,7 +572,7 @@ if __name__ == "__main__":
 
     # write all cas protein to one file , later to be used  for clustering
     # this is bottleneck, as we need to copy all file into one file sequentially, won't make things faster
-    collect_all_cas_in_one_file(sorted(cas_flanking_regions), all_cas_proteins_folder, cas_type, sorted(merged_fastas))
+    collect_all_cas_in_one_file(sorted(flanking_size_records), all_cas_proteins_folder, cas_type, sorted(merged_fastas))
     logging.info(f"collect_all_cas_in_one_file done")
 
     # cluster all cas proteins

@@ -74,13 +74,13 @@ def write_repeat_or_spacer_seq(cas_cluster_id, seq_list, output_folder, label, w
     """
     Write repeat or spacer sequences to a FASTA file.
     """
-    file_name = f"{output_folder}{os.path.basename(seq_list[0][0][0]).replace('.tsv', '')}.fasta"
+    file_name = f"{output_folder}{os.path.basename(seq_list[0][0][0]).replace('_flanking_size.tsv2', '')}.fasta"
     os.makedirs(output_folder, exist_ok=True)
     with open(file_name, write_mode) as fasta_file:
         for sub_seq_list in seq_list:
             count = 0
             for cas_member_id, seq in sub_seq_list:
-                fasta_file.write(f">{os.path.basename(cas_member_id).replace('.tsv', '')}{label}{count}\n")  # Write the sequence ID as a header
+                fasta_file.write(f">{os.path.basename(cas_member_id).replace('_flanking_size.tsv2', '')}{label}{count}\n")  # Write the sequence ID as a header
                 fasta_file.write(f"{seq}\n")  # Write the sequence
                 count += 1
 
@@ -290,9 +290,9 @@ def process_each_cas_cluster(mp_args):  # define function here so all variables 
      cdhit_repeat_clustering_folder,
      repeat_oriented_spacer_aggregate_folder,
      cdhit_repeat_oriented_spacer_clustering_folder) = mp_args
-    tsv_file = cas_cluster_id.split("#")[0].replace('.tsv', '_flanking_size.tsv2')
-    merged_file = cas_cluster_id.split("#")[0].replace('.tsv', '.fasta')
-    cas_cluster_id = os.path.basename(cas_cluster_id).replace('.tsv', '')
+    tsv_file = cas_cluster_id.split("#")[0]
+    merged_file = cas_cluster_id.split("#")[0].replace('_flanking_size.tsv2', '.fasta')
+    cas_cluster_id = os.path.basename(cas_cluster_id).replace('_flanking_size.tsv2', '')
 
     try:
         # using cas protein clustering results to aggregate related repeat or spacers  for near identical cas protein)
