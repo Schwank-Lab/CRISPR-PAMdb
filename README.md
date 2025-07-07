@@ -87,7 +87,7 @@ CICERO/
     └── ...          # Saved model checkpoints and experiment logs
 ```
 
-**TODO**: Model weights will be uploaded — location to be determined.
+**Note**: Model weights will be published upon acceptance.
 
 ### 🚀 Training
 **Note**: The best-performing version of **CICERO** is based on the **650M parameter ESM2 model**. However, for simplicity and faster experimentation, all examples below use the smaller **8M model**, referred to as **CICERO-8M**.
