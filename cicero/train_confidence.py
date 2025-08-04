@@ -101,7 +101,7 @@ class CustomConfidenceTrainer(Trainer):
 
 def main():
     parser = argparse.ArgumentParser(description="Train confidence head for PAM predictor.")
-    parser.add_argument("--esm_model", default="esm2_t6_8M_UR50D", type=str, help="Name of the ESM model")
+    parser.add_argument("--esm_model", default="esm2_t33_650M_UR50D", type=str, help="Name of the ESM model")
     parser.add_argument("--data_dir", default="data/", type=str, help="Directory containing input data")
     parser.add_argument("--fold", default=0, type=int, help="Cross-validation fold number")
     parser.add_argument("--seed", default=42, type=int, help="Random seed for reproducibility")

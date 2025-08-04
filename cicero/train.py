@@ -192,7 +192,7 @@ class Cas9PAMDataset(Dataset):
 
 def main():
     parser = argparse.ArgumentParser(description="Train Cas9 PAM predictor using ESM2 model.")
-    parser.add_argument("--esm_model", type=str, default="esm2_t6_8M_UR50D", help="HuggingFace model checkpoint (e.g., esm2_t33_650M_UR50D)")
+    parser.add_argument("--esm_model", type=str, default="esm2_t33_650M_UR50D", help="HuggingFace model checkpoint (e.g., esm2_t33_650M_UR50D)")
     parser.add_argument("--data_dir", type=str, default="data/", help="Path to training data directory")
     parser.add_argument("--reuse_experiment", type=str, default="exp0000", help="Name of existing experiment folder to reuse")
     parser.add_argument("--fold", type=int, default=0, help="Fold number (used to load specific train/val split)")

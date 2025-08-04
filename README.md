@@ -56,6 +56,8 @@ snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /pa
 
 CICERO is a deep learning model built on top of the ESM2 protein language model for predicting PAM sequences directly from Cas9 protein sequences. It significantly extends PAM coverage beyond alignment-based methods used in the mining pipeline.
 
+📁 Note: All commands below assume you are working from within the ```cicero/``` directory, which is self-contained.
+
 ### 🧪 Setup Environment
 
 To get started with CICERO, set up the Python environment:
@@ -87,32 +89,56 @@ CICERO/
     └── ...          # Saved model checkpoints and experiment logs
 ```
 
-**Note**: Model weights will be published upon acceptance.
+**Note**: You can download the checkpoints for the trained **CICERO-650M** models from this [link](https://drive.switch.ch/index.php/s/xqRkJYbnN4yGhI8).
+After downloading, save under the following directory:
+```
+out/esm2_t33_650M_UR50D-pam_predict-exp0000/
+```
+Each of the 5 folds should have its own subdirectory within ```esm2_t33_650M_UR50D-pam_predict-exp0000```, e.g.:
+```
+out/esm2_t33_650M_UR50D-pam_predict-exp0000/run_0/
+out/esm2_t33_650M_UR50D-pam_predict-exp0000/run_1/
+...
+out/esm2_t33_650M_UR50D-pam_predict-exp0000/run_4/
+```
+Make sure the corresponding checkpoint files directly as obtained from the [link](https://drive.switch.ch/index.php/s/xqRkJYbnN4yGhI8) are inside each ```run_X``` directory.
 
 ### 🚀 Training
-**Note**: The best-performing version of **CICERO** is based on the **650M parameter ESM2 model**. However, for simplicity and faster experimentation, all examples below use the smaller **8M model**, referred to as **CICERO-8M**.
+**Note**: The best-performing and final version of **CICERO** is based on the **650M parameter ESM2 model**. If you want to train CICERO using a smaller baseline model, simply adapt the input argument ```esm_model```. 
 
-To train CICERO-8M on **fold 0** and save it under the experiment name ```exp0000```:
+To train CICERO-650M on **fold 0** and save it under the experiment name ```exp0000```:
 
 ```
-python train.py --esm_model "esm2_t6_8M_UR50D" --fold 0 --hidden_dim 320 --reuse_experiment "exp0000"
+python train.py --esm_model "esm2_t33_650M_UR50D" --fold 0 --hidden_dim 1280 --reuse_experiment "exp0000"
 ```
 
 ### ⚙️ Optional: Phase 2 – Confidence Model Training
 After training the initial PAM prediction model, you can optionally **train a confidence head** to estimate prediction reliability:
 ```
-python train_confidence.py --esm_model "esm2_t6_8M_UR50D" --fold 0 --exp_dir "exp0000"
+python train_confidence.py --esm_model "esm2_t33_650M_UR50D" --fold 0 --exp_dir "exp0000"
 ```
 
 ### 🧪 Testing
 Run standard testing on the model trained in ```exp0000``` for fold 0:
 ```
-python test.py --esm_model "esm2_t6_8M_UR50D" --fold 0 --exp_dir "exp0000"
+python test.py --esm_model "esm2_t33_650M_UR50D" --fold 0 --exp_dir "exp0000"
 ```
+If you want to additionally use the confidence model, set the input argument ```use_confidence``` to ```True```. 
 
 ### 🌐 External Test: Gasiunas Dataset
 Evaluate performance on the external dataset from **Gasiunas et al.**:
 
 ```
-python test_Gasiunas.py --esm_model "esm2_t6_8M_UR50D" --fold 0 --exp_dir "exp0000"
+python test_Gasiunas.py --esm_model "esm2_t33_650M_UR50D" --fold 0 --exp_dir "exp0000"
 ```
+If you want to additionally use the confidence model, set the input argument ```use_confidence``` to ```True```. 
+Moreover, you can average the predictions for all folds by removing the ```fold``` input argument using the following command: 
+```
+python test_Gasiunas.py --esm_model "esm2_t33_650M_UR50D" --exp_dir "exp0000"
+```
+💡 Expected output for reproducibility: median accuracy of CICERO-650M on the external dataset is 0.7534. 
+
+### Hardware Requirements
+
+**CICERO-650M** was trained and tested on a single NVIDIA GeForce RTX 4090, running on Ubuntu 20.04.6 LTS.
+Evaluation across five test folds took an average of ~212,82 seconds per fold for 1,514 samples (~141 ms/sample).

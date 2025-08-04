@@ -137,12 +137,12 @@ def evaluate_fold(fold, args, model_checkpoint, tokenizer, device, dropout_prob)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--esm_model", default="esm2_t6_8M_UR50D", type=str)
+    parser.add_argument("--esm_model", default="esm2_t33_650M_UR50D", type=str)
     parser.add_argument("--exp_dir", default="exp0000", type=str)
     parser.add_argument("--fold", default=None, type=lambda x: int(x) if x.lower() != "none" else None)
     parser.add_argument("--data_dir", default="data/", type=str)
     parser.add_argument("--test_batch_size", default=2, type=int)
-    parser.add_argument("--use_confidence", default=False, type=bool)
+    parser.add_argument("--use_confidence", default=True, type=bool)
     parser.add_argument("--seed", default=42, type=int)
     args = parser.parse_args()
 

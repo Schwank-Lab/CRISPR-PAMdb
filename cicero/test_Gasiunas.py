@@ -126,7 +126,7 @@ def evaluate_fold(load_dir, test_dataloader, model_checkpoint, dropout_prob, dev
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--esm_model", default="esm2_t6_8M_UR50D", type=str)
+    parser.add_argument("--esm_model", default="esm2_t33_650M_UR50D", type=str)
     parser.add_argument("--exp_dir", default="exp0000", type=str)
     parser.add_argument("--data_dir", default="data/", type=str)
     parser.add_argument("--use_confidence", default=False, type=bool)
