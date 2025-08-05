@@ -2,8 +2,11 @@
 
 ## index
 - [CICERO: A Machine Learning Model for Cas9 PAM Prediction](#module1)
-- [Steps of the Mining Pipeline](# Steps of the Mining Pipeline)
+- [Steps of the Mining Pipeline](#module2)
 
+<br/>
+<br/>
+<br/>
 
 
 ## CICERO: A Machine Learning Model for Cas9 PAM Prediction <a name="module1"></a>
@@ -105,7 +108,7 @@ Evaluation across five test folds took an average of ~212,82 seconds per fold fo
 
 
 
-## Steps of the Mining Pipeline
+## Steps of the Mining Pipeline <a name="module2"></a>
 ### Identifying CRISPR Repeats
 In the first step we detect CRISPR repeats using [PILER-CR](https://doi.org/10.1186/1471-2105-8-18) and 
 [MinCED](https://github.com/ctSkennerton/minced). We then identify the contigs containing the repeats and merge the 
