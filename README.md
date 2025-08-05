@@ -93,6 +93,10 @@ Evaluation across five test folds took an average of ~212,82 seconds per fold fo
 
 
 
+
+
+
+
 ## Steps of the Mining Pipeline
 ### Identifying CRISPR Repeats
 In the first step we detect CRISPR repeats using [PILER-CR](https://doi.org/10.1186/1471-2105-8-18) and 
