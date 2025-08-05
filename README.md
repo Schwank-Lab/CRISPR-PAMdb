@@ -104,7 +104,6 @@ In the first step we detect CRISPR repeats using [PILER-CR](https://doi.org/10.1
 results of the two tools. 
 
 ### Identify Cas Proteins and CRISPR Array
-
 On the contigs, we search for protein coding genes using [prodigal](https://doi.org/10.1186/1471-2105-11-119). Using
 [hmmsearch](https://doi.org/10.1093/nar/gkr367), we identify Cas proteins among the protein coding genes. The found Cas 
 proteins are then checked if they are in flanking regions of the CRISPR repeats.
@@ -114,7 +113,8 @@ To enhance the number of spacers associated with each Cas ortholog, we pooled CR
 closely related Cas proteins. Proteins are clustered using MMseqs2 at 98% amino acid identity.
 
 ### Identify PAM and Protospacers
-We then identify PAM sequences and protospacers based on the identified CRISPR-Cas regions.
+We identified PAM sequences for specific protein clusters by aligning their spacers to protospacers in phage and plasmid genomes. 
+We then used the protospacers' flanking regions to derive consensus PAMs.
 
 ## How to run the Mining Pipeline
 ### Cloning the Git Repository
@@ -148,4 +148,8 @@ snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /pa
 Check if the steps listed in the snakemake dry run are what you are planning to run. If this is correct, run:
 ```sh
 snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda
+```
+We've prepared example configuration files and inputs (). After you download these inputs, you can run the pipeline with the following command:
+```sh
+snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/toy_config_template.yaml -j 1 --cluster-cancel scancel --use-conda
 ```
