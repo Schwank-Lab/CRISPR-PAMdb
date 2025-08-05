@@ -135,7 +135,7 @@ Create the environment using the provided yaml file. Adapt the path to the locat
 ```sh
 conda env create -f ~/path/to/CRISPR-PAMdb/snakemake_pipeline/envs/environment.yml
 ```
-Please install PAMpredict according to [their instructions](https://github.com/Matteo-Ciciani/PAMpredict).
+Please also download PAMpredict from [their instructions](https://github.com/Matteo-Ciciani/PAMpredict). You don't need to install it, as the necessary library was installed in the previous step.
 
 ### Snakemake Pipeline
 The snakemake pipeline expects gzipped files as input and is written to use the SLURM queueing system. Set your 
@@ -149,7 +149,7 @@ Check if the steps listed in the snakemake dry run are what you are planning to 
 ```sh
 snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda
 ```
-We've prepared example configuration files and inputs (). After you download these inputs, you can run the pipeline with the following command:
+We also prepared example configuration files and inputs (). After you download these inputs, you can run the pipeline with the following command:
 ```sh
 snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/toy_config_template.yaml -j 1 --cluster-cancel scancel --use-conda
 ```
