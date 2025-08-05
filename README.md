@@ -1,13 +1,10 @@
 # CRISPR-PAMdb
 
-## index
+## Index
 - [CICERO: A Machine Learning Model for Cas9 PAM Prediction](#module1)
 - [Steps of the Mining Pipeline](#module2)
 
 <br/>
-<br/>
-<br/>
-
 
 ## CICERO: A Machine Learning Model for Cas9 PAM Prediction <a name="module1"></a>
 
@@ -102,11 +99,6 @@ Evaluation across five test folds took an average of ~212,82 seconds per fold fo
 
 
 <br/>
-<br/>
-<br/>
-
-
-
 
 ## Steps of the Mining Pipeline <a name="module2"></a>
 ### Identifying CRISPR Repeats
@@ -142,7 +134,7 @@ If you don't want to install or use Git, you can also download the repository on
 ### Setting up the Conda Environment
 In order to run the pipeline, you need to have 
 [conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed.
-Create the environment using the provided yaml file. Adapt the path to the location of the repository.
+Create the environment using the provided yaml file. Adapt the path to the location of the repository. Please note that the conda environment can only be created on the following platforms: osx64, win32, win64, linux32, linux64, linux-aarch64, linux-s390x and linux-ppc64le, due to limited availability of the package [_libgcc_mutex](https://anaconda.org/anaconda/_libgcc_mutex).
 ```sh
 conda env create -f ~/path/to/CRISPR-PAMdb/snakemake_pipeline/envs/environment.yml
 ```
