@@ -1,12 +1,12 @@
 # CRISPR-PAMdb
 
 ## index
-- [CICERO: A Machine Learning Model for Cas9 PAM Prediction](# CICERO: A Machine Learning Model for Cas9 PAM Prediction)
+- [CICERO: A Machine Learning Model for Cas9 PAM Prediction](# module1)
 - [Steps of the Mining Pipeline](# Steps of the Mining Pipeline)
 
-- 
 
-## CICERO: A Machine Learning Model for Cas9 PAM Prediction
+
+## CICERO: A Machine Learning Model for Cas9 PAM Prediction <a name="module1"></a>
 
 CICERO is a deep learning model built on top of the ESM2 protein language model for predicting PAM sequences directly from Cas9 protein sequences. It significantly extends PAM coverage beyond alignment-based methods used in the mining pipeline.
 
