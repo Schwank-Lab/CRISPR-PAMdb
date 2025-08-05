@@ -138,9 +138,9 @@ conda env create -f ~/path/to/CRISPR-PAMdb/snakemake_pipeline/envs/environment.y
 Please also download PAMpredict from [their instructions](https://github.com/Matteo-Ciciani/PAMpredict). You don't need to install it, as the necessary library was installed in the previous step.
 
 ### Snakemake Pipeline
-The snakemake pipeline expects gzipped files as input and is written to use the SLURM queueing system. Set your 
-preferences in the config and add the relative path from the `input_directory` to the gzipped fasta files to the 
-samples file. You can the pipeline run it with:
+The snakemake pipeline expects gzipped files as input and is written to use the SLURM queueing system (dont have to use SLURM system though). Set your 
+preferences in the [config file](https://github.com/Schwank-Lab/CRISPR-PAMdb/blob/main/snakemake_pipeline/config/config_template.yaml) and add the relative path of the gzipped fasta files from the `input_directory` to the 
+[sample file](https://github.com/Schwank-Lab/CRISPR-PAMdb/blob/main/snakemake_pipeline/config/samples). You can then  run the pipeline with:
 ```sh
 conda activate mining
 snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda --dryrun
