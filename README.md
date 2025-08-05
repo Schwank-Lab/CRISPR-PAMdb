@@ -1,7 +1,7 @@
 # CRISPR-PAMdb
 
 ## index
-- [CICERO: A Machine Learning Model for Cas9 PAM Prediction](# module1)
+- [CICERO: A Machine Learning Model for Cas9 PAM Prediction](#module1)
 - [Steps of the Mining Pipeline](# Steps of the Mining Pipeline)
 
 
