@@ -151,7 +151,7 @@ Check if the steps listed in the snakemake dry run are what you are planning to 
 ```sh
 snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda
 ```
-We also prepared example configuration files and inputs (). After you download these inputs, you can run the pipeline with the following command:
+We also prepared example configuration files and inputs (can be obtained from the [link](https://drive.switch.ch/index.php/s/xqRkJYbnN4yGhI8)). After you download these inputs, you can run the pipeline with the following command:
 ```sh
 snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/toy_config_template.yaml -j 1 --cluster-cancel scancel --use-conda
 ```
