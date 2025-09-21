@@ -137,6 +137,21 @@ Moreover, you can average the predictions for all folds by removing the ```fold`
 python test_Gasiunas.py --esm_model "esm2_t33_650M_UR50D" --exp_dir "exp0000"
 ```
 💡 Expected output for reproducibility: median accuracy of CICERO-650M on the external dataset is 0.7534. 
+After running the script, a folder will be created automatically:
+```
+/predictions/test_Gasiunas/<esm_model>_<exp_dir>/
+```
+This folder will contain sequence logo plots for each Cas9 prediction. Each plot shows:
+- The predicted PAM motif as a sequence logo,
+- The accuracy score (and confidence score if enabled).
+
+Example output:
+
+<img src="cicero/assets/example_output.png" alt="" width="400"/>
+
+### 🖼 Example Plot
+You can also generate a sequence logo plot directly from a PAM prediction array.
+An example script is provided in ```cicero/prediction_to_logo.py```, which will produce a figure like the ones created during testing.
 
 ### Hardware Requirements
 

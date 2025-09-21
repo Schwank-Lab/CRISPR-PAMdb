@@ -174,3 +174,51 @@ def softmax(x: np.ndarray) -> np.ndarray:
     x_max = np.max(x, axis=1, keepdims=True)
     exp_x = np.exp(x - x_max)
     return exp_x / np.sum(exp_x, axis=1, keepdims=True)
+
+
+def logits_to_info_content(logits):
+    """
+    Convert raw logits (10 x 4) into information content for logo plotting.
+    """
+    # softmax over bases
+    probs = torch.nn.functional.softmax(torch.tensor(logits), dim=-1).numpy()
+
+    # information content: 2 + sum(p * log2(p)) for DNA bases
+    info_content = []
+    for pos in range(probs.shape[0]):
+        p = probs[pos]
+        ic = 2 + np.sum(p * np.log2(p + 1e-9))  # 2 = max bits for DNA
+        info_content.append(p * ic)
+    return np.array(info_content)
+
+
+def save_logo_plot(logits, save_path, accuracy=None, confidence=None):
+    """
+    Generate and save a single PAM prediction logo.
+    - logits: array of shape (10,4)
+    - save_path: file path including filename
+    - accuracy: float
+    - confidence: float or None
+    """
+    # Convert logits → info content
+    info_pred = logits_to_info_content(logits.reshape(10, 4))
+    df_pred = pd.DataFrame(info_pred, columns=["A", "C", "G", "T"])
+
+    # Create figure
+    fig, ax = plt.subplots(figsize=(6, 2))
+    logomaker.Logo(df_pred, ax=ax)
+    ax.set_ylabel("bits")
+    ax.set_xlabel("PAM Position")
+
+    if accuracy is not None:
+        acc_val = float(np.squeeze(accuracy))
+        conf_val = float(np.squeeze(confidence)) if confidence is not None else None
+
+        if conf_val is not None:
+            ax.set_title(f"Accuracy {acc_val:.2f}, Confidence {conf_val:.2f}")
+        else:
+            ax.set_title(f"Accuracy {acc_val:.2f}")
+
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches="tight")
+    plt.close()

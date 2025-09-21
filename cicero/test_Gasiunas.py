@@ -11,6 +11,7 @@ from transformers import AutoTokenizer, AutoModel
 from safetensors import safe_open
 from functools import partial
 import logging
+from pathlib import Path
 
 import utils
 import train
@@ -129,7 +130,7 @@ def main():
     parser.add_argument("--esm_model", default="esm2_t33_650M_UR50D", type=str)
     parser.add_argument("--exp_dir", default="exp0000", type=str)
     parser.add_argument("--data_dir", default="data/", type=str)
-    parser.add_argument("--use_confidence", default=False, type=bool)
+    parser.add_argument("--use_confidence", default=True, type=bool)
     parser.add_argument("--fold", default=None, type=lambda x: int(x) if x.lower() != "none" else None)
     parser.add_argument("--seed", default=42, type=int)
     parser.add_argument("--test_batch_size", default=2, type=int)
@@ -145,7 +146,8 @@ def main():
     model_checkpoint = os.path.join("facebook", args.esm_model)
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 
-    test_df = pd.DataFrame(utils.load_h5_Gasiunas(os.path.join(args.data_dir, "test_Gasiunas.h5")))
+    data_file = "test_Gasiunas.h5"
+    test_df = pd.DataFrame(utils.load_h5_Gasiunas(os.path.join(args.data_dir, data_file)))
     test_dataset = GasiunasDataset(test_df, tokenizer)
     test_dataloader = DataLoader(
         test_dataset,
@@ -206,6 +208,17 @@ def main():
             )
         else:
             logging.info(f"No samples exceed the confidence threshold of {threshold}.")
+
+    # === Make output directory for predictions ===
+    pred_dir = Path(f"predictions/{data_file.split('.h5')[0]}/{args.esm_model}-{args.exp_dir}/")
+    pred_dir.mkdir(parents=True, exist_ok=True)
+
+    # Save logos
+    for i in range(len(averaged_logits)):
+        save_path = pred_dir / f"{results['cas9_ids'][i]}_pamlogo.png"
+        acc = final_acc[i]
+        conf = confidence_pred[i] if args.use_confidence else None
+        utils.save_logo_plot(averaged_logits[i], save_path, acc, conf)
 
 if __name__ == "__main__":
     main()
