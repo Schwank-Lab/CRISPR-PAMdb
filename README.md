@@ -1,58 +1,12 @@
 # CRISPR-PAMdb
-## Steps of the Mining Pipeline
-### Identifying CRISPR Repeats
-In the first step we detect CRISPR repeats using [PILER-CR](https://doi.org/10.1186/1471-2105-8-18) and 
-[MinCED](https://github.com/ctSkennerton/minced). We then identify the contigs containing the repeats and merge the 
-results of the two tools. 
 
-### Identify Cas Proteins and CRISPR Array
+## Index
+- [CICERO: A Machine Learning Model for Cas9 PAM Prediction](#module1)
+- [Steps of the Mining Pipeline](#module2)
 
-On the contigs, we search for protein coding genes using [prodigal](https://doi.org/10.1186/1471-2105-11-119). Using
-[hmmsearch](https://doi.org/10.1093/nar/gkr367), we identify Cas proteins among the protein coding genes. The found Cas 
-proteins are then checked if they are in flanking regions of the CRISPR repeats.
+<br/>
 
-### Cluster Cas Proteins
-To enhance the number of spacers associated with each Cas ortholog, we pooled CRISPR arrays from
-closely related Cas proteins. Proteins are clustered using MMseqs2 at 98% amino acid identity.
-
-### Identify PAM and Protospacers
-We then identify PAM sequences and protospacers based on the identified CRISPR-Cas regions.
-
-## How to run the Mining Pipeline
-### Cloning the Git Repository
-
-In order to run the pipeline, you need to clone the git repository. This is most easily done by using 
-[Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git):
-```sh
-git clone https://github.com/Schwank-Lab/CRISPR-PAMdb.git
-```
-If you don't want to install or use Git, you can also download the repository on the 
-[repository website](https://github.com/Schwank-Lab/CRISPR-PAMdb.git). Click on the button `Code` and then 
-`Download Zip`. After the download finished, unzip the folder.
-
-### Setting up the Conda Environment
-In order to run the pipeline, you need to have 
-[conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed.
-Create the environment using the provided yaml file. Adapt the path to the location of the repository.
-```sh
-conda env create -f ~/path/to/CRISPR-PAMdb/snakemake_pipeline/envs/environment.yml
-```
-Please install PAMpredict according to [their instructions](https://github.com/Matteo-Ciciani/PAMpredict).
-
-### Snakemake Pipeline
-The snakemake pipeline expects gzipped files as input and is written to use the SLURM queueing system. Set your 
-preferences in the config and add the relative path from the `input_directory` to the gzipped fasta files to the 
-samples file. You can the pipeline run it with:
-```sh
-conda activate mining
-snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda --dryrun
-```
-Check if the steps listed in the snakemake dry run are what you are planning to run. If this is correct, run:
-```sh
-snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda
-```
-
-## CICERO: A Machine Learning Model for Cas9 PAM Prediction
+## CICERO: A Machine Learning Model for Cas9 PAM Prediction <a name="module1"></a>
 
 CICERO is a deep learning model built on top of the ESM2 protein language model for predicting PAM sequences directly from Cas9 protein sequences. It significantly extends PAM coverage beyond alignment-based methods used in the mining pipeline.
 
@@ -157,3 +111,63 @@ An example script is provided in ```cicero/prediction_to_logo.py```, which will 
 
 **CICERO-650M** was trained and tested on a single NVIDIA GeForce RTX 4090, running on Ubuntu 20.04.6 LTS.
 Evaluation across five test folds took an average of ~212,82 seconds per fold for 1,514 samples (~141 ms/sample).
+
+
+<br/>
+
+## Steps of the Mining Pipeline <a name="module2"></a>
+### Identifying CRISPR Repeats
+In the first step we detect CRISPR repeats using [PILER-CR](https://doi.org/10.1186/1471-2105-8-18) and 
+[MinCED](https://github.com/ctSkennerton/minced). We then identify the contigs containing the repeats and merge the 
+results of the two tools. 
+
+### Identify Cas Proteins and CRISPR Array
+On the contigs, we search for protein coding genes using [prodigal](https://doi.org/10.1186/1471-2105-11-119). Using
+[hmmsearch](https://doi.org/10.1093/nar/gkr367), we identify Cas proteins among the protein coding genes. The found Cas 
+proteins are then checked if they are in flanking regions of the CRISPR repeats.
+
+### Cluster Cas Proteins
+To enhance the number of spacers associated with each Cas ortholog, we pooled CRISPR arrays from
+closely related Cas proteins. Proteins are clustered using MMseqs2 at 98% amino acid identity.
+
+### Identify PAM and Protospacers
+We identified PAM sequences for specific protein clusters by aligning their spacers to protospacers in phage and plasmid genomes. 
+We then used the protospacers' flanking regions to derive consensus PAMs.
+
+## How to run the Mining Pipeline
+### Cloning the Git Repository
+
+In order to run the pipeline, you need to clone the git repository. This is most easily done by using 
+[Git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git):
+```sh
+git clone https://github.com/Schwank-Lab/CRISPR-PAMdb.git
+```
+If you don't want to install or use Git, you can also download the repository on the 
+[repository website](https://github.com/Schwank-Lab/CRISPR-PAMdb.git). Click on the button `Code` and then 
+`Download Zip`. After the download finished, unzip the folder.
+
+### Setting up the Conda Environment
+In order to run the pipeline, you need to have 
+[conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html) installed.
+Create the environment using the provided yaml file. Adapt the path to the location of the repository. Please note that the conda environment can only be created on the following platforms: osx64, win32, win64, linux32, linux64, linux-aarch64, linux-s390x and linux-ppc64le, due to limited availability of the package [_libgcc_mutex](https://anaconda.org/anaconda/_libgcc_mutex).
+```sh
+conda env create -f ~/path/to/CRISPR-PAMdb/snakemake_pipeline/envs/environment.yml
+```
+Please also download PAMpredict from [their instructions](https://github.com/Matteo-Ciciani/PAMpredict). You don't need to install it, as the necessary library was installed in the previous step.
+
+### Snakemake Pipeline
+The snakemake pipeline expects gzipped files as input and is written to use the SLURM queueing system (dont have to use SLURM system though). Set your 
+preferences in the [config file](https://github.com/Schwank-Lab/CRISPR-PAMdb/blob/main/snakemake_pipeline/config/config_template.yaml) and add the relative path of the gzipped fasta files from the `input_directory` to the 
+[sample file](https://github.com/Schwank-Lab/CRISPR-PAMdb/blob/main/snakemake_pipeline/config/samples). You can then  run the pipeline with:
+```sh
+conda activate mining
+snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda --dryrun
+```
+Check if the steps listed in the snakemake dry run are what you are planning to run. If this is correct, run:
+```sh
+snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/config_template.yaml -j 1 --cluster-cancel scancel --use-conda
+```
+We also prepared example configuration files and inputs (can be obtained from the [link](https://drive.switch.ch/index.php/s/xqRkJYbnN4yGhI8)). After you download these inputs, you can run the pipeline with the following command:
+```sh
+snakemake -s /path/to/CRISPR-PAMdb/snakemake_pipeline/Snakefile --configfile /path/to/CRISPR-PAMdb/snakemake_pipeline/config/toy_config_template.yaml -j 1 --cluster-cancel scancel --use-conda
+```

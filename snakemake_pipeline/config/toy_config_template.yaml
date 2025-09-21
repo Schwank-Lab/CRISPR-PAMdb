@@ -1,0 +1,23 @@
+##############
+# PARAMETERS #
+##############
+input_directory: '/home/ubuntu/tao/pipeline_example_input/makarova_genomes' # path to the database of gzipped fasta files
+output_directory: '/home/ubuntu/tao/pipeline_example_output' # where your results should be
+pam_predict_installation_directory: '/home/ubuntu/lilith/PAMpredict/PAMpredict' # absolute path to PAMpredict installation directory
+hmm_files_path: '/home/ubuntu/tao/pipeline_example_input/hmm_profiles' # path to hmm profiles
+sample_file: '/home/ubuntu/tao/CRISPR-PAMdb/snakemake_pipeline/config/toy_samples' # path to samples file
+phage_database: '/home/ubuntu/tao/pipeline_example_input/phage_plasmid_seqs/toy_db.fna' # path to the fasta file of your phage database
+cas_type: 'cas9' # cas type you are interested in
+num_processes: 10 # to speed up PAMpredict, may lead to errors if number is chosen too high
+
+################
+# RULES TO RUN #
+################
+# The pipeline expects your data to be gzipped
+run_minced: True
+run_pilercr: True
+run_merge: True
+run_clustering: True
+run_prepare_spacers: True
+run_pam_predict: True
+
