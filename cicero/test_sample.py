@@ -21,37 +21,46 @@ import test
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 
+def load_fasta(filepath):
+    sequences = {}
+    with open(filepath, "r") as f:
+        header = None
+        seq_lines = []
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith(">"):
+                if header:
+                    sequences[header] = "".join(seq_lines)
+                header = line[1:].strip()
+                seq_lines = []
+            else:
+                seq_lines.append(line)
+        if header:
+            sequences[header] = "".join(seq_lines)
+    return sequences
 
-class GasiunasDataset(Dataset):
-    def __init__(self, df, tokenizer, use_PID=False):
-        self.df = df
+
+class SimpleFASTAInferenceDataset(Dataset):
+    def __init__(self, fasta_dict, tokenizer):
+        self.items = list(fasta_dict.items())
         self.tokenizer = tokenizer
-        self.use_PID = use_PID
 
     def __len__(self):
-        return len(self.df)
+        return len(self.items)
 
     def __getitem__(self, idx):
-        row = self.df.iloc[idx]
-        seq = row['PI domain sequence'] if self.use_PID else row['Protein sequence']
-
-        inputs = self.tokenizer(seq, truncation=False, padding=False, return_tensors="pt")
-        input_ids = inputs['input_ids'].squeeze(0)
-        attention_mask = inputs['attention_mask'].squeeze(0)
-
-        pam_logos = torch.tensor(np.array(eval(row['Experimental PAM logo (A,C,G,T)'])), dtype=torch.float32)
-        protein2pam_acc = torch.tensor(row['PAM prediction accuracy'], dtype=torch.float32)
-        protein2pam_conf = torch.tensor(row['Protein2PAM confidence score'], dtype=torch.float32)
-
+        header, seq = self.items[idx]
+        inputs = self.tokenizer(
+            seq, return_tensors="pt", truncation=False, padding=False
+        )
         return {
-            "cas9_id": row['Protein ID'],
-            "input_ids": input_ids,
-            "attention_mask": attention_mask,
-            "pam_logos": pam_logos,
-            "Protein2PAM_acc": protein2pam_acc,
-            "Protein2PAM_conf": protein2pam_conf
+            "cas9_id": header,
+            "input_ids": inputs["input_ids"].squeeze(0),
+            "attention_mask": inputs["attention_mask"].squeeze(0),
         }
-
+    
 
 def evaluate_fold(load_dir, test_dataloader, model_checkpoint, dropout_prob, device, use_confidence=False):
     config = utils.load_config(os.path.join(load_dir, 'config.json'))
@@ -86,16 +95,14 @@ def evaluate_fold(load_dir, test_dataloader, model_checkpoint, dropout_prob, dev
         confidence_model.load_state_dict(conf_state_dict, strict=True)
         confidence_model = confidence_model.to(device).eval()
 
-    all_logits, all_labels_logos = [], []
-    all_lengths, all_cas9_ids = [], []
-    all_protein2pam_acc, all_protein2pam_conf = [], []
+    all_logits = []
+    all_cas9_ids = []
     all_confidence_preds = []
 
     with torch.no_grad():
         for batch in test_dataloader:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
-            pam_logos = batch["pam_logos"].to(dtype=torch.float32).to(device)
 
             if use_confidence:
                 logits, confidence_score = confidence_model(input_ids=input_ids, attention_mask=attention_mask)
@@ -104,21 +111,12 @@ def evaluate_fold(load_dir, test_dataloader, model_checkpoint, dropout_prob, dev
                 logits = model(input_ids=input_ids, attention_mask=attention_mask)
 
             logits = logits.reshape(-1, 10, 4)
-
             all_logits.append(logits.cpu().numpy())
-            all_labels_logos.append(pam_logos.cpu().numpy())
-            all_lengths.append(attention_mask.sum(dim=1).cpu().numpy())
             all_cas9_ids.extend(batch["cas9_id"])
-            all_protein2pam_acc.append(batch["Protein2PAM_acc"].cpu().numpy())
-            all_protein2pam_conf.append(batch["Protein2PAM_conf"].cpu().numpy())
             
     results = {
-        "logits": np.concatenate(all_logits),
-        "labels": np.concatenate(all_labels_logos),
-        "lengths": np.concatenate(all_lengths),
         "cas9_ids": np.array(all_cas9_ids),
-        "protein2pam_acc": np.concatenate(all_protein2pam_acc),
-        "protein2pam_conf": np.concatenate(all_protein2pam_conf),
+        "logits": np.concatenate(all_logits),
         "confidence_preds": np.concatenate(all_confidence_preds) if use_confidence else None
     }
 
@@ -129,11 +127,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--esm_model", default="esm2_t33_650M_UR50D", type=str)
     parser.add_argument("--exp_dir", default="exp0000", type=str)
-    parser.add_argument("--data_dir", default="data/", type=str)
+    parser.add_argument("--data_file", default="data/sample_protein.fasta", type=str)
     parser.add_argument("--use_confidence", default=True, type=bool)
     parser.add_argument("--fold", default=None, type=lambda x: int(x) if x.lower() != "none" else None)
     parser.add_argument("--seed", default=42, type=int)
-    parser.add_argument("--test_batch_size", default=2, type=int)
+    parser.add_argument("--test_batch_size", default=1, type=int)
     args = parser.parse_args()
 
     utils.seed_all(args.seed)
@@ -146,15 +144,10 @@ def main():
     model_checkpoint = os.path.join("facebook", args.esm_model)
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
 
-    data_file = "test_Gasiunas.h5"
-    test_df = pd.DataFrame(utils.load_h5_Gasiunas(os.path.join(args.data_dir, data_file)))
-    test_dataset = GasiunasDataset(test_df, tokenizer)
-    test_dataloader = DataLoader(
-        test_dataset,
-        batch_size=args.test_batch_size,
-        shuffle=False,
-        collate_fn=partial(test.custom_collate_fn, tokenizer=tokenizer),
-    )
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    fasta_dict = load_fasta(os.path.join(curr_path, args.data_file))
+    test_dataset = SimpleFASTAInferenceDataset(fasta_dict, tokenizer)
+    test_dataloader = DataLoader(test_dataset, batch_size=args.test_batch_size)
 
     if args.fold is None:
         exp_run_dir = f"out/{args.esm_model}-pam_predict-{args.exp_dir}"
@@ -177,12 +170,6 @@ def main():
         logits_fold = results["logits"]
         all_logits.append(logits_fold)
 
-        acc = train.augmented_cosine_similarity(
-            torch.tensor(logits_fold), torch.tensor(results["labels"]), is_info=False
-        ).cpu().numpy()
-
-        logging.info(f"Fold {fold} augCosSim median accuracy: {np.median(acc):.4f}")
-
         if args.use_confidence:
             all_confidences.append(results["confidence_preds"])
 
@@ -193,32 +180,17 @@ def main():
         averaged_logits = all_logits[0]
         confidence_pred = all_confidences[0] if args.use_confidence else None
 
-    final_acc = train.augmented_cosine_similarity(
-        torch.tensor(averaged_logits), torch.tensor(results["labels"]), is_info=False
-    ).cpu().numpy()
-
-    logging.info(f"Test PAM prediction on Gasiunas dataset - median accuracy: {np.median(final_acc):.4f}")
-
-    if args.use_confidence:
-        filtered_acc = final_acc[confidence_pred.squeeze() > threshold]
-        if len(filtered_acc) > 0:
-            logging.info(
-                f"Filtered accuracy with confidence > {threshold}: {np.median(filtered_acc):.4f} "
-                f"({len(filtered_acc)}/{len(final_acc)} samples)"
-            )
-        else:
-            logging.info(f"No samples exceed the confidence threshold of {threshold}.")
+    logging.info(f"Test PAM prediction on <sample_protein.fasta> done")
 
     # === Make output directory for predictions ===
-    pred_dir = Path(f"predictions/{data_file.split('.h5')[0]}/{args.esm_model}-{args.exp_dir}/")
+    pred_dir = Path(f"predictions/tmp/{args.esm_model}-{args.exp_dir}/")
     pred_dir.mkdir(parents=True, exist_ok=True)
 
     # Save logos
     for i in range(len(averaged_logits)):
         save_path = pred_dir / f"{results['cas9_ids'][i]}_pamlogo.png"
-        acc = final_acc[i]
         conf = confidence_pred[i] if args.use_confidence else None
-        utils.save_logo_plot(averaged_logits[i], save_path, acc, conf)
+        utils.save_logo_plot(averaged_logits[i], save_path)
 
 if __name__ == "__main__":
     main()

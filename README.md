@@ -107,6 +107,17 @@ Example output:
 You can also generate a sequence logo plot directly from a PAM prediction array.
 An example script is provided in ```cicero/prediction_to_logo.py```, which will produce a figure like the ones created during testing.
 
+### 🔬 Testing Custom FASTA Sequences
+You can test CICERO on your own protein sequences using a FASTA file located at ```data/sample_protein.fasta```.
+Simply run:
+```
+python test_sample.py --esm_model "esm2_t33_650M_UR50D" --exp_dir "exp0000"
+```
+The predicted PAM logos will be saved automatically under:
+```
+predictions/tmp/<esm_model>-<exp_dir>/
+```
+
 ### Hardware Requirements
 
 **CICERO-650M** was trained and tested on a single NVIDIA GeForce RTX 4090, running on Ubuntu 20.04.6 LTS.
